@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}@{{ a.username }} · админ{% endblock %}
+{% block content %}
+<p><a href="/admins">← Все админы</a></p>
+<section class="grid2">
+  <div class="box">
+    <h1>@{{ a.username }}{% if a.name %} · {{ a.name }}{% endif %}</h1>
+    <p><a href="https://t.me/{{ a.username }}" target="_blank" rel="noopener">Открыть в Telegram</a> · в справочнике с {{ a.added_at }}</p>
+    <h3>Каналы ({{ channels | length }})</h3>
+    <ul class="admins">
+    {% for c in channels %}
+      <li><a href="/c/{{ c.id }}"><b>{{ c.title or "@" ~ c.username }}</b></a> <span class="muted">@{{ c.username }} · {{ c.role }}{% if c.subscribers is not none %} · {{ c.subscribers }} подп.{% endif %}</span>
+        {% if c.ai_score is not none %}<span class="score s{{ c.ai_score // 25 }}">{{ c.ai_score }}</span>{% endif %}
+        <span class="st st-{{ c.status }}">{{ STATUSES[c.status] }}</span></li>
+    {% else %}<li class="muted">Не привязан ни к одному каналу</li>{% endfor %}
+    </ul>
+  </div>
+  <form method="post" action="/a/{{ a.id }}" class="box">
+    <h2>Контакт</h2>
+    <label>Имя <input name="name" value="{{ a.name }}" placeholder="Как зовут"></label>
+    <label>Статус <select name="status">{% for k, v in ADMIN_STATUSES.items() %}<option value="{{ k }}" {% if k == a.status %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+    <textarea name="note" rows="4" placeholder="Что писали, что ответил, цена, договорённости…">{{ a.note }}</textarea>
+    <button>Сохранить</button>
+    {% if a.contacted_at %}<p class="muted">Написали: {{ a.contacted_at }}</p>{% endif %}
+    {% if log %}
+      <h3>История</h3>
+      <ul class="log">{% for l in log %}<li>{{ l.at }}: {{ ADMIN_STATUSES.get(l.old, l.old) }} → {{ ADMIN_STATUSES.get(l.new, l.new) }}{% if l.note %} <span class="muted">({{ l.note }})</span>{% endif %}</li>{% endfor %}</ul>
+    {% endif %}
+  </form>
+</section>
+<form method="post" action="/a/{{ a.id }}/delete" onsubmit="return confirm('Удалить @{{ a.username }} из справочника? Связи с каналами тоже удалятся.')">
+  <button class="danger">Удалить из справочника</button>
+</form>
+{% endblock %}

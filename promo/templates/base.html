@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Нямням · продвижение{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+{% block head %}{% endblock %}
+</head>
+<body>
+<header>
+  <a href="/" class="logo">🍽 Нямням · продвижение</a>
+  {% if request.url.path != "/login" %}
+  <nav><a href="/">Каналы</a><a href="/admins">Админы</a><a href="/logout">Выйти</a></nav>
+  {% endif %}
+</header>
+<main>
+{% if msg %}<div class="flash">{{ msg }}</div>{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

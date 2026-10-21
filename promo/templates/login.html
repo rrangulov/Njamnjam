@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="post" action="/login" class="box login">
+  <h1>Вход</h1>
+  {% if error %}<p class="err">{{ error }}</p>{% endif %}
+  <label>Логин <input name="username" autocomplete="username" required autofocus></label>
+  <label>Пароль <input name="password" type="password" autocomplete="current-password" required></label>
+  <button>Войти</button>
+</form>
+{% endblock %}

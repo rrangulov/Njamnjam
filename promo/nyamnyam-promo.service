@@ -1,0 +1,22 @@
+[Unit]
+Description=Nyamnyam promo panel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+StateDirectory=nyamnyam-promo
+WorkingDirectory=/opt/nyamnyam-promo
+EnvironmentFile=/opt/nyamnyam-promo/.env
+Environment=DB_PATH=/var/lib/nyamnyam-promo/promo.db
+ExecStart=/opt/nyamnyam-promo/venv/bin/python app.py
+Restart=on-failure
+RestartSec=5
+MemoryMax=200M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
