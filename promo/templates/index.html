@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block head %}{% if job.running %}<meta http-equiv="refresh" content="5">{% endif %}{% endblock %}
+{% block content %}
+<section class="grid2">
+  <form method="post" action="/add" class="box">
+    <h2>Добавить каналы</h2>
+    <textarea name="text" rows="4" placeholder="@channel, t.me/channel или https://t.me/s/channel — по одному в строке"></textarea>
+    <button>Добавить</button>
+  </form>
+  <div class="box">
+    <h2>Действия</h2>
+    <div class="row">
+      <form method="post" action="/refresh-all"><input type="hidden" name="only_new" value="1"><button {% if job.running %}disabled{% endif %}>Собрать новые</button></form>
+      <form method="post" action="/refresh-all"><button class="ghost" {% if job.running %}disabled{% endif %}>Обновить все</button></form>
+      <form method="post" action="/analyze-all"><button {% if job.running or not ai_ready %}disabled{% endif %}>ИИ-анализ новых</button></form>
+    </div>
+    <p class="muted">ИИ: {% if ai_ready %}сегодня {{ ai_used }} из {{ ai_limit }} запросов{% else %}нет ключа ИИ — анализ выключен{% endif %}</p>
+    {% if job.running %}
+      <p><b>{{ "Сбор" if job.kind == "refresh" else "Анализ" }}:</b> {{ job.done }} из {{ job.total }}{% if job.current %}, сейчас @{{ job.current }}{% endif %}</p>
+    {% elif job.log %}
+      <p class="muted">Последний запуск закончен {{ job.finished_at }}</p>
+    {% endif %}
+    {% if job.log %}<details {% if job.running %}open{% endif %}><summary>Журнал</summary><pre>{{ job.log | join("\n") }}</pre></details>{% endif %}
+  </div>
+</section>
+
+<nav class="tabs">
+  <a href="/?sort={{ sort }}" class="{{ 'on' if not status }}">Все ({{ counts.values() | sum }})</a>
+  {% for k, v in STATUSES.items() %}
+    <a href="/?status={{ k }}&sort={{ sort }}" class="{{ 'on' if status == k }}">{{ v }} ({{ counts.get(k, 0) }})</a>
+  {% endfor %}
+</nav>
+<p class="muted"><a href="/export.csv">Выгрузить каналы в CSV</a> · Сортировка:
+  {% for k, v in [("score","оценка"),("subs","подписчики"),("added","новые"),("name","имя")] %}
+    <a href="/?status={{ status }}&sort={{ k }}" class="{{ 'on' if sort == k }}">{{ v }}</a>
+  {% endfor %}
+</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Канал</th><th>Подписчики</th><th>Последний пост</th><th>Оценка</th><th>Статус</th><th>Заметка</th></tr></thead>
+  <tbody>
+  {% for c in channels %}
+    <tr>
+      <td><a href="/c/{{ c.id }}"><b>{{ c.title or "@" ~ c.username }}</b></a><br><span class="muted">@{{ c.username }}</span>
+        {% if c.fetch_state and c.fetch_state != "ok" %}<br><span class="err">{{ c.fetch_error }}</span>{% elif not c.fetched_at %}<br><span class="muted">не собран</span>{% endif %}</td>
+      <td>{{ "{:,}".format(c.subscribers).replace(",", " ") if c.subscribers is not none else "—" }}</td>
+      <td>{{ c.last_post_at or "—" }}</td>
+      <td>{% if c.ai_score is not none %}<span class="score s{{ (c.ai_score // 25) }}">{{ c.ai_score }}</span>{% else %}—{% endif %}</td>
+      <td><span class="st st-{{ c.status }}">{{ STATUSES[c.status] }}</span></td>
+      <td class="note">{{ c.note }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="muted">Каналов пока нет</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

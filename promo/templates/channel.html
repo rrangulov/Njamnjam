@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}@{{ ch.username }} · Нямням{% endblock %}
+{% block content %}
+<p><a href="/">← Все каналы</a></p>
+<section class="box">
+  <h1>{{ ch.title or "@" ~ ch.username }}</h1>
+  <p><a href="https://t.me/{{ ch.username }}" target="_blank" rel="noopener">t.me/{{ ch.username }}</a>
+    · подписчиков: {{ "{:,}".format(ch.subscribers).replace(",", " ") if ch.subscribers is not none else "—" }}
+    · собран: {{ ch.fetched_at or "ни разу" }} · добавлен: {{ ch.added_at }}</p>
+  {% if ch.fetch_state and ch.fetch_state != "ok" %}<p class="err">{{ ch.fetch_error }}</p>{% endif %}
+  {% if ch.description %}<pre class="desc">{{ ch.description }}</pre>{% endif %}
+  {% if contacts %}<p><b>Контакты:</b> {% for c in contacts %}<code>{{ c }}</code> {% endfor %}</p>{% endif %}
+  <h3>Админы и контакты</h3>
+  {% if admins %}
+  <ul class="admins">
+    {% for a in admins %}
+    <li><a href="/a/{{ a.id }}"><b>@{{ a.username }}</b></a>{% if a.name %} {{ a.name }}{% endif %}
+      <span class="muted">· {{ a.role }}{% if a.source == "manual" %}, вручную{% endif %}</span>
+      <span class="st st-a-{{ a.status }}">{{ ADMIN_STATUSES[a.status] }}</span>
+      <form method="post" action="/c/{{ ch.id }}/admins/{{ a.id }}/unlink" class="inline"><button class="link">отвязать</button></form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">В описании канала контактов не нашлось. Добавьте вручную, если знаете админа.</p>{% endif %}
+  <form method="post" action="/c/{{ ch.id }}/admins/add" class="row">
+    <input name="username" placeholder="@username админа" class="short" required>
+    <input name="role" placeholder="роль: админ, реклама…" class="short">
+    <button class="ghost">Добавить админа</button>
+  </form>
+  <div class="row">
+    <form method="post" action="/c/{{ ch.id }}/refresh"><button>Обновить</button></form>
+    <form method="post" action="/c/{{ ch.id }}/analyze"><button {% if not ai_ready or ch.fetch_state != "ok" %}disabled{% endif %}>ИИ-анализ</button></form>
+    {% if not ai_ready %}<span class="muted">нет ключа ИИ</span>{% endif %}
+  </div>
+</section>
+
+<section class="grid2">
+  <div class="box">
+    <h2>Анализ ИИ {% if ch.ai_score is not none %}<span class="score s{{ ch.ai_score // 25 }}">{{ ch.ai_score }}</span>{% endif %}</h2>
+    {% if ch.ai_error %}<p class="err">{{ ch.ai_error }}</p>{% endif %}
+    {% if analysis %}
+      <dl>
+      {% for key, label in [("topic","Тематика"),("audience","Аудитория"),("language","Язык"),("activity","Активность"),("reason","Почему такая оценка"),("approach","Как зайти"),("hook","Угол подачи"),("ad_info","Реклама"),("risks","Риски")] %}
+        {% if analysis.get(key) %}<dt>{{ label }}</dt><dd>{{ analysis[key] }}</dd>{% endif %}
+      {% endfor %}
+      </dl>
+      <p class="muted">Анализ от {{ ch.analyzed_at }}</p>
+    {% else %}<p class="muted">Ещё не анализировался</p>{% endif %}
+  </div>
+  <form method="post" action="/c/{{ ch.id }}/status" class="box">
+    <h2>Статус</h2>
+    <select name="status">{% for k, v in STATUSES.items() %}<option value="{{ k }}" {% if k == ch.status %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+    <textarea name="note" rows="4" placeholder="Заметка: кому писали, что ответили, цена рекламы…">{{ ch.note }}</textarea>
+    <button>Сохранить</button>
+    {% if log %}
+      <h3>История</h3>
+      <ul class="log">{% for l in log %}<li>{{ l.at }}: {{ STATUSES.get(l.old, l.old) }} → {{ STATUSES.get(l.new, l.new) }}{% if l.note %} <span class="muted">({{ l.note }})</span>{% endif %}</li>{% endfor %}</ul>
+    {% endif %}
+  </form>
+</section>
+
+<section class="box">
+  <h2>Последние посты ({{ posts | length }})</h2>
+  {% for p in posts %}
+    <article class="post">
+      <p class="muted"><a href="https://t.me/{{ ch.username }}/{{ p.post_id }}" target="_blank" rel="noopener">{{ p.posted_at or "?" }}</a>{% if p.views %} · 👁 {{ p.views }}{% endif %}</p>
+      <p>{{ p.text }}</p>
+    </article>
+  {% else %}<p class="muted">Постов нет</p>{% endfor %}
+</section>
+
+<form method="post" action="/c/{{ ch.id }}/delete" onsubmit="return confirm('Удалить канал @{{ ch.username }} из списка?')">
+  <button class="danger">Удалить из списка</button>
+</form>
+{% endblock %}
